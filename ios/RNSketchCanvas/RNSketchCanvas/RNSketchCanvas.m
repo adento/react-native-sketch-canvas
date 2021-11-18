@@ -372,7 +372,7 @@
     }
 }
 
-- (void)saveImageOfType:(NSString*) type folder:(NSString*) folder filename:(NSString*) filename withTransparentBackground:(BOOL) transparent includeImage:(BOOL)includeImage includeText:(BOOL)includeText cropToImageSize:(BOOL)cropToImageSize {
+- (BOOL)saveImageOfType:(NSString*) type folder:(NSString*) folder filename:(NSString*) filename withTransparentBackground:(BOOL) transparent includeImage:(BOOL)includeImage includeText:(BOOL)includeText cropToImageSize:(BOOL)cropToImageSize {
     UIImage *img = [self createImageWithTransparentBackground:transparent includeImage:includeImage includeText:(BOOL)includeText cropToImageSize:cropToImageSize];
     
     if (folder != nil && filename != nil) {
@@ -390,17 +390,25 @@
             if (_onChange) {
                 _onChange(@{ @"success": @YES, @"path": [fileURL path]});
             }
+            printf("returning yes");
+            return YES;
         } else {
             if (_onChange) {
                 _onChange(@{ @"success": @NO, @"path": [NSNull null]});
             }
+            printf("returning no");
+            return NO;
         }
     } else {
         if ([type isEqualToString: @"png"]) {
             img = [UIImage imageWithData: UIImagePNGRepresentation(img)];
         }
         UIImageWriteToSavedPhotosAlbum(img, self, @selector(image:didFinishSavingWithError:contextInfo:), nil);
+        print("returning yes")
+        return YES;
     }
+
+    return YES;
 }
 
 - (UIImage *)scaleImage:(UIImage *)originalImage toSize:(CGSize)size contentMode: (NSString*)mode
@@ -441,6 +449,8 @@
 - (void)image:(UIImage *)image didFinishSavingWithError:(NSError *)error contextInfo: (void *) contextInfo {
     if (_onChange) {
         _onChange(@{ @"success": error != nil ? @NO : @YES });
+        print("error");
+        print(error);
     }
 }
 

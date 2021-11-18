@@ -58,10 +58,16 @@ RCT_CUSTOM_VIEW_PROPERTY(text, NSArray, RNSketchCanvas)
 #pragma mark - Exported methods
 
 
-RCT_EXPORT_METHOD(save:(nonnull NSNumber *)reactTag type:(NSString*) type folder:(NSString*) folder filename:(NSString*) filename withTransparentBackground:(BOOL) transparent includeImage:(BOOL)includeImage includeText:(BOOL)includeText cropToImageSize:(BOOL)cropToImageSize)
+RCT_EXPORT_METHOD(save:(nonnull NSNumber *)reactTag type:(NSString*) type folder:(NSString*) folder filename:(NSString*) filename withTransparentBackground:(BOOL) transparent includeImage:(BOOL)includeImage includeText:(BOOL)includeText cropToImageSize:(BOOL)cropToImageSize resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
     [self runCanvas:reactTag block:^(RNSketchCanvas *canvas) {
-        [canvas saveImageOfType:type folder:folder filename:filename withTransparentBackground:transparent includeImage:includeImage includeText:includeText cropToImageSize:cropToImageSize];
+      BOOL *imageSaved = [canvas saveImageOfType:type folder:folder filename:filename withTransparentBackground:transparent includeImage:includeImage includeText:includeText cropToImageSize:cropToImageSize]
+      printf("image saved");
+      if (imageSaved) {
+        resolve(@"success");
+      } else {
+        reject(@"error", @"error description", nil);
+      }
     }];
 }
 
