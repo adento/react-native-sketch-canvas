@@ -38,7 +38,21 @@ This React Native Sketch Canvas module has been updated to support React Native 
 ### 4. JavaScript Updates
 - Removed deprecated `ViewPropTypes` import
 - Updated PropTypes to use compatible alternatives
-- All React Native imports are now compatible with 0.74.5
+- **Replaced deprecated lifecycle methods:**
+  - `UNSAFE_componentWillReceiveProps` → `componentDidUpdate`
+  - `UNSAFE_componentWillMount` → moved PanResponder initialization to constructor
+- **Updated UIManager API usage:**
+  - Replaced deprecated `UIManager.getViewManagerConfig()` with modern command dispatching
+  - Added proper error handling and ref management
+  - Updated native module interactions for React Native 0.74+
+- **Enhanced Android permissions handling:**
+  - Added support for Android 13+ media permissions
+  - Improved permission request logic for different API levels
+  - Added proper error handling for permission requests
+- **Added modern React patterns:**
+  - Error boundaries with `componentDidCatch`
+  - Improved state management
+  - Better ref handling
 
 ### 5. Configuration Files
 - Added `react-native.config.js` for proper autolinking support
@@ -78,6 +92,14 @@ cd ios && pod install
 
 ### PropTypes
 - `ViewPropTypes.style` has been replaced with `PropTypes.oneOfType([PropTypes.object, PropTypes.array])`
+
+### Lifecycle Methods  
+- `UNSAFE_componentWillReceiveProps` has been replaced with `componentDidUpdate`
+- `UNSAFE_componentWillMount` has been removed, PanResponder initialization moved to constructor
+
+### Native API Changes
+- `UIManager.getViewManagerConfig()` has been replaced with modern command dispatching
+- Updated native module interaction patterns for React Native 0.74+
 
 ### Native Code Changes
 - Android: Deprecated APIs have been replaced with modern equivalents

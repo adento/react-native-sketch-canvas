@@ -21,6 +21,17 @@ const RNSketchCanvas = requireNativeComponent('RNSketchCanvas', SketchCanvas, {
 });
 const SketchCanvasManager = NativeModules.RNSketchCanvasManager || {};
 
+// Command mapping for React Native 0.74+
+const Commands = {
+  addPoint: 'addPoint',
+  newPath: 'newPath', 
+  clear: 'clear',
+  addPath: 'addPath',
+  deletePath: 'deletePath',
+  save: 'save',
+  endPath: 'endPath'
+};
+
 class SketchCanvas extends React.Component {
   static propTypes = {
     style: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
@@ -96,69 +107,12 @@ class SketchCanvas extends React.Component {
     this._initialized = false
 
     this.state.text = this._processText(props.text ? props.text.map(t => Object.assign({}, t)) : null)
+    
+    // Initialize PanResponder in constructor instead of componentWillMount
+    this.initializePanResponder()
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    this.setState({
-      text: this._processText(nextProps.text ? nextProps.text.map(t => Object.assign({}, t)) : null)
-    })
-  }
-
-  _processText(text) {
-    text && text.forEach(t => t.fontColor = processColor(t.fontColor))
-    return text
-  }
-
-  clear() {
-    this._paths = []
-    this._path = null
-    UIManager.dispatchViewManagerCommand(this._handle, UIManager.getViewManagerConfig(RNSketchCanvas).Commands.clear, [])
-  }
-
-  undo() {
-    let lastId = -1;
-    this._paths.forEach(d => lastId = d.drawer === this.props.user ? d.path.id : lastId)
-    if (lastId >= 0) this.deletePath(lastId)
-    return lastId
-  }
-
-  addPath(data) {
-    if (this._initialized) {
-      if (this._paths.filter(p => p.path.id === data.path.id).length === 0) this._paths.push(data)
-      const pathData = data.path.data.map(p => {
-        const coor = p.split(',').map(pp => parseFloat(pp).toFixed(2))
-        return `${coor[0] * this._screenScale * this._size.width / data.size.width},${coor[1] * this._screenScale * this._size.height / data.size.height}`;
-      })
-      UIManager.dispatchViewManagerCommand(this._handle, UIManager.getViewManagerConfig(RNSketchCanvas).Commands.addPath, [
-        data.path.id, processColor(data.path.color), data.path.width * this._screenScale, pathData
-      ])
-    } else {
-      this._pathsToProcess.filter(p => p.path.id === data.path.id).length === 0 && this._pathsToProcess.push(data)
-    }
-  }
-
-  deletePath(id) {
-    this._paths = this._paths.filter(p => p.path.id !== id)
-    UIManager.dispatchViewManagerCommand(this._handle, UIManager.getViewManagerConfig(RNSketchCanvas).Commands.deletePath, [id])
-  }
-
-  save(imageType, transparent, folder, filename, includeImage, includeText, cropToImageSize) {
-    UIManager.dispatchViewManagerCommand(this._handle, UIManager.getViewManagerConfig(RNSketchCanvas).Commands.save, [imageType, folder, filename, transparent, includeImage, includeText, cropToImageSize])
-  }
-
-  getPaths() {
-    return this._paths
-  }
-
-  getBase64(imageType, transparent, includeImage, includeText, cropToImageSize, callback) {
-    if (Platform.OS === 'ios') {
-      SketchCanvasManager.transferToBase64(this._handle, imageType, transparent, includeImage, includeText, cropToImageSize, callback)
-    } else {
-      NativeModules.SketchCanvasModule.transferToBase64(this._handle, imageType, transparent, includeImage, includeText, cropToImageSize, callback)
-    }
-  }
-
-  UNSAFE_componentWillMount() {
+  initializePanResponder() {
     this.panResponder = PanResponder.create({
       // Ask to be the responder:
       onStartShouldSetPanResponder: (evt, gestureState) => this.props.touchEnabled && gestureState.numberActiveTouches === this.props.requiredTouches,
@@ -180,23 +134,15 @@ class SketchCanvas extends React.Component {
         const x = parseFloat((gestureState.x0 - this._offset.x).toFixed(2)),
               y = parseFloat((gestureState.y0 - this._offset.y).toFixed(2))
 
-        UIManager.dispatchViewManagerCommand(
-          this._handle,
-          UIManager.getViewManagerConfig(RNSketchCanvas).Commands.newPath,
-          [
-            this._path.id,
-            processColor(this._path.color),
-            this._path.width * this._screenScale
-          ]
-        )
-        UIManager.dispatchViewManagerCommand(
-          this._handle,
-          UIManager.getViewManagerConfig(RNSketchCanvas).Commands.addPoint,
-          [
-            parseFloat((x).toFixed(2) * this._screenScale),
-            parseFloat((y).toFixed(2) * this._screenScale)
-          ]
-        )
+        this.dispatchCommand('newPath', [
+          this._path.id,
+          processColor(this._path.color),
+          this._path.width * this._screenScale
+        ])
+        this.dispatchCommand('addPoint', [
+          parseFloat((x).toFixed(2) * this._screenScale),
+          parseFloat((y).toFixed(2) * this._screenScale)
+        ])
         this._path.data.push(`${x},${y}`)
         this.props.onStrokeStart(x, y)
       },
@@ -215,7 +161,7 @@ class SketchCanvas extends React.Component {
           const x = parseFloat((gestureState.x0 + rotated_dx / this.props.scale - this._offset.x).toFixed(2));
           const y = parseFloat((gestureState.y0 + rotated_dy / this.props.scale - this._offset.y).toFixed(2));
 
-          UIManager.dispatchViewManagerCommand(this._handle, UIManager.getViewManagerConfig(RNSketchCanvas).Commands.addPoint, [
+          this.dispatchCommand('addPoint', [
             parseFloat(x * this._screenScale),
             parseFloat(y * this._screenScale)
           ])
@@ -231,7 +177,7 @@ class SketchCanvas extends React.Component {
           this.props.onStrokeEnd({ path: this._path, size: this._size, drawer: this.props.user })
           this._paths.push({ path: this._path, size: this._size, drawer: this.props.user })
         }
-        UIManager.dispatchViewManagerCommand(this._handle, UIManager.getViewManagerConfig(RNSketchCanvas).Commands.endPath, [])
+        this.dispatchCommand('endPath', [])
       },
       onPanResponderTerminate: (evt, gestureState) => {
         // Another component has become the responder, so this gesture should be cancelled
@@ -240,13 +186,102 @@ class SketchCanvas extends React.Component {
           this.props.onStrokeEnd({ path: this._path, size: this._size, drawer: this.props.user });
           this._paths.push({ path: this._path, size: this._size, drawer: this.props.user });
         }
-        UIManager.dispatchViewManagerCommand(this._handle, UIManager.getViewManagerConfig(RNSketchCanvas).Commands.endPath, []);
+        this.dispatchCommand('endPath', []);
       },
 
       onShouldBlockNativeResponder: (evt, gestureState) => {
         return true;
       },
     });
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.text !== this.props.text) {
+      this.setState({
+        text: this._processText(this.props.text ? this.props.text.map(t => Object.assign({}, t)) : null)
+      })
+    }
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.warn('SketchCanvas Error:', error, errorInfo);
+  }
+
+  // Modern command dispatching method
+  dispatchCommand(command, args = []) {
+    if (this._canvasRef) {
+      const commandName = Commands[command] || command;
+      UIManager.dispatchViewManagerCommand(
+        ReactNative.findNodeHandle(this._canvasRef),
+        commandName,
+        args
+      )
+    }
+  }
+
+  _processText(text) {
+    text && text.forEach(t => t.fontColor = processColor(t.fontColor))
+    return text
+  }
+
+  clear() {
+    this._paths = []
+    this._path = null
+    this.dispatchCommand('clear', [])
+  }
+
+  undo() {
+    let lastId = -1;
+    this._paths.forEach(d => lastId = d.drawer === this.props.user ? d.path.id : lastId)
+    if (lastId >= 0) this.deletePath(lastId)
+    return lastId
+  }
+
+  addPath(data) {
+    if (this._initialized) {
+      if (this._paths.filter(p => p.path.id === data.path.id).length === 0) this._paths.push(data)
+      const pathData = data.path.data.map(p => {
+        const coor = p.split(',').map(pp => parseFloat(pp).toFixed(2))
+        return `${coor[0] * this._screenScale * this._size.width / data.size.width},${coor[1] * this._screenScale * this._size.height / data.size.height}`;
+      })
+      this.dispatchCommand('addPath', [
+        data.path.id, processColor(data.path.color), data.path.width * this._screenScale, pathData
+      ])
+    } else {
+      this._pathsToProcess.filter(p => p.path.id === data.path.id).length === 0 && this._pathsToProcess.push(data)
+    }
+  }
+
+  deletePath(id) {
+    this._paths = this._paths.filter(p => p.path.id !== id)
+    this.dispatchCommand('deletePath', [id])
+  }
+
+  save(imageType, transparent, folder, filename, includeImage, includeText, cropToImageSize) {
+    this.dispatchCommand('save', [imageType, folder, filename, transparent, includeImage, includeText, cropToImageSize])
+  }
+
+  getPaths() {
+    return this._paths
+  }
+
+  getBase64(imageType, transparent, includeImage, includeText, cropToImageSize, callback) {
+    try {
+      const nodeHandle = ReactNative.findNodeHandle(this._canvasRef);
+      if (!nodeHandle) {
+        callback && callback('Canvas not available', null);
+        return;
+      }
+      
+      if (Platform.OS === 'ios') {
+        SketchCanvasManager.transferToBase64(nodeHandle, imageType, transparent, includeImage, includeText, cropToImageSize, callback)
+      } else {
+        NativeModules.SketchCanvasModule.transferToBase64(nodeHandle, imageType, transparent, includeImage, includeText, cropToImageSize, callback)
+      }
+    } catch (error) {
+      console.warn('getBase64 error:', error);
+      callback && callback(error.message, null);
+    }
   }
 
   async componentDidMount() {
@@ -260,6 +295,7 @@ class SketchCanvas extends React.Component {
     return (
       <RNSketchCanvas
         ref={ref => {
+          this._canvasRef = ref
           this._handle = ReactNative.findNodeHandle(ref)
         }}
         style={this.props.style}
@@ -287,9 +323,19 @@ class SketchCanvas extends React.Component {
   }
 }
 
-SketchCanvas.MAIN_BUNDLE = Platform.OS === 'ios' ? UIManager.getViewManagerConfig(RNSketchCanvas).Constants.MainBundlePath : '';
-SketchCanvas.DOCUMENT = Platform.OS === 'ios' ? UIManager.getViewManagerConfig(RNSketchCanvas).Constants.NSDocumentDirectory : '';
-SketchCanvas.LIBRARY = Platform.OS === 'ios' ? UIManager.getViewManagerConfig(RNSketchCanvas).Constants.NSLibraryDirectory : '';
-SketchCanvas.CACHES = Platform.OS === 'ios' ? UIManager.getViewManagerConfig(RNSketchCanvas).Constants.NSCachesDirectory : '';
+// Get constants from native modules using modern API
+const getConstants = () => {
+  if (Platform.OS === 'ios') {
+    return SketchCanvasManager.getConstants ? SketchCanvasManager.getConstants() : {}
+  }
+  return {}
+}
+
+const constants = getConstants()
+
+SketchCanvas.MAIN_BUNDLE = Platform.OS === 'ios' ? (constants.MainBundlePath || '') : '';
+SketchCanvas.DOCUMENT = Platform.OS === 'ios' ? (constants.NSDocumentDirectory || '') : '';
+SketchCanvas.LIBRARY = Platform.OS === 'ios' ? (constants.NSLibraryDirectory || '') : '';
+SketchCanvas.CACHES = Platform.OS === 'ios' ? (constants.NSCachesDirectory || '') : '';
 
 module.exports = SketchCanvas;

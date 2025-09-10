@@ -1,6 +1,5 @@
 import * as React from 'react'
 import {
-  ViewProperties,
   StyleProp,
   ViewStyle
 } from "react-native"
@@ -87,7 +86,7 @@ export interface SketchCanvasProps {
   onPathsChange?: (pathsCount: number) => void
 }
 
-export class SketchCanvas extends React.Component<SketchCanvasProps & ViewProperties> {
+export class SketchCanvas extends React.Component<SketchCanvasProps> {
   clear(): void
   undo(): number
   addPath(data: Path): void
@@ -164,7 +163,7 @@ export interface RNSketchCanvasProps {
   localSourceImage?: LocalSourceImage
 }
 
-export default class RNSketchCanvas extends React.Component<RNSketchCanvasProps & ViewProperties> {
+export default class RNSketchCanvas extends React.Component<RNSketchCanvasProps> {
   clear(): void
   undo(): number
   addPath(data: Path): void
