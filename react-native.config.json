@@ -1,0 +1,8 @@
+{
+  "name": "RNSketchCanvasSpec",
+  "type": "all",
+  "jsSrcsDir": "./src",
+  "android": {
+    "javaPackageName": "com.terrylinla.rnsketchcanvas"
+  }
+}

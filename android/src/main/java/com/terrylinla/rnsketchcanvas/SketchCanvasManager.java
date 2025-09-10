@@ -71,17 +71,15 @@ public class SketchCanvasManager extends SimpleViewManager<SketchCanvas> {
 
     @Override
     public Map<String,Integer> getCommandsMap() {
-        Map<String, Integer> map = new HashMap<>();
-
-        map.put("addPoint", COMMAND_ADD_POINT);
-        map.put("newPath", COMMAND_NEW_PATH);
-        map.put("clear", COMMAND_CLEAR);
-        map.put("addPath", COMMAND_ADD_PATH);
-        map.put("deletePath", COMMAND_DELETE_PATH);
-        map.put("save", COMMAND_SAVE);
-        map.put("endPath", COMMAND_END_PATH);
-
-        return map;
+        return MapBuilder.<String, Integer>builder()
+                .put("addPoint", COMMAND_ADD_POINT)
+                .put("newPath", COMMAND_NEW_PATH)
+                .put("clear", COMMAND_CLEAR)
+                .put("addPath", COMMAND_ADD_PATH)
+                .put("deletePath", COMMAND_DELETE_PATH)
+                .put("save", COMMAND_SAVE)
+                .put("endPath", COMMAND_END_PATH)
+                .build();
     }
 
     @Override
